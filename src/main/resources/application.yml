@@ -1,0 +1,67 @@
+
+
+baseUrl: /lostfilm
+version: v1
+apiUrl: ${baseUrl}/${version}
+app:
+  datasource:
+    h2:
+      hikari:
+        pool-name: havasPoolName
+        maximum-pool-size: '10'
+        auto-commit: 'false'
+        minimum-idle: '1'
+      url: jdbc:h2:mem:testdb;
+      type: com.zaxxer.hikari.HikariDataSource
+      driver-class-name: org.h2.Driver
+      username: sa
+      password: password
+    maria:
+      hikari:
+        pool-name: havasPoolName
+        maximum-pool-size: '10'
+        auto-commit: 'false'
+        minimum-idle: '1'
+      url: jdbc:mariadb://103.110.86.59:9000/automobile?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC+7
+      type: com.zaxxer.hikari.HikariDataSource
+      driver-class-name: org.mariadb.jdbc.Driver
+      username: generate
+      password: 1
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;INIT=RUNSCRIPT FROM 'classpath:create_tables.sql';
+    username: sa
+    password: password
+  h2:
+    console:
+      enabled: true
+      path: /h2
+  main:
+    allow-bean-definition-overriding: 'true'
+jasypt:
+  encryptor:
+    password: 'amitiel'
+info:
+  build:
+    description: '@project.description@'
+    name: '@project.name@'
+    version: '@build.version@'
+    artifact: '@project.artifactId@'
+management:
+  server:
+    port: 8080
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    jmx:
+      exposure:
+        exclude: '*'
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  health:
+    db:
+      enabled: false
+
