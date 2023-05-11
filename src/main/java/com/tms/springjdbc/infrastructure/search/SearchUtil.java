@@ -19,7 +19,7 @@ public class SearchUtil {
         appendFromClause(queryBuilder, joinParams);
         appendWhereClause(queryBuilder, searchParams);
         appendJoinClauses(queryBuilder, joinParams);
-        log.debug("Generated SQL: {}", queryBuilder.toString());
+        log.info("Generated SQL: {}", queryBuilder.toString());
         return queryBuilder.toString();
     }
 
@@ -29,7 +29,7 @@ public class SearchUtil {
         appendFromClause(queryBuilder, joinParams);
         appendWhereClause(queryBuilder, searchParams);
         appendJoinClauses(queryBuilder, joinParams);
-        log.debug("Generated COUNT SQL: {}", queryBuilder.toString());
+        log.info("Generated COUNT SQL: {}", queryBuilder.toString());
         return queryBuilder.toString();
     }
 
@@ -65,15 +65,16 @@ public class SearchUtil {
 
     private static void appendJoinClauses(StringBuilder queryBuilder, List<JoinParam> joinParams) {
         joinParams.stream().skip(1).forEach(joinParam -> {
-            String joinType = joinParam.getJoinType().toString();
+            String joinType = joinParam.getJoinType().getValue();
             String joinTable = joinParam.getTable();
             String alias = joinParam.getAlias();
-            String onClause = joinParam.getOnClause();
+            String column = joinParam.getColumn();
 
             queryBuilder.append(joinType).append(" JOIN ").append(joinTable).append(" AS ").append(alias)
-                    .append(" ON ").append(onClause).append(" ");
+                    .append(" ON ").append(alias).append(".").append(column).append(" = ").append(joinParams.get(0).getAlias()).append(".").append(column).append(" ");
         });
     }
+
 
     public static String generateCondition(SearchParam param) {
         String name = param.getName();

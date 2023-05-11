@@ -1,5 +1,6 @@
 package com.tms.springjdbc.domain.repository;
 
+import com.tms.springjdbc.domain.model.BaseEntity;
 import com.tms.springjdbc.infrastructure.search.SearchResult;
 import com.tms.springjdbc.infrastructure.search.SelectColumn;
 import com.tms.springjdbc.presentation.web.dto.JoinParam;
@@ -10,7 +11,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 
-public interface BaseDao<T, ID extends Serializable> {
+public interface BaseDao<T extends BaseEntity, ID extends Serializable> {
     T save(T entity);
 
     void delete(T entity);

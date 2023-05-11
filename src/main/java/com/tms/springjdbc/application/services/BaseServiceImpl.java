@@ -1,5 +1,6 @@
 package com.tms.springjdbc.application.services;
 
+import com.tms.springjdbc.domain.model.BaseEntity;
 import com.tms.springjdbc.domain.repository.BaseDao;
 import com.tms.springjdbc.infrastructure.search.SearchResult;
 import com.tms.springjdbc.infrastructure.search.SelectColumn;
@@ -12,12 +13,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class BaseServiceImpl<T, ID extends Serializable, D extends BaseDao<T, ID>> implements BaseService<T, ID> {
+public class BaseServiceImpl<T extends BaseEntity, ID extends Serializable, D extends BaseDao<T, ID>> implements BaseService<T, ID> {
     protected final D baseDao;
 
     public BaseServiceImpl(D baseDao) {
         this.baseDao = baseDao;
     }
+
     @Override
     public T save(T entity) {
         return baseDao.save(entity);

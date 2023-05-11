@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Setter
 @Getter
 @NoArgsConstructor
-public class EmployeesEntity implements Serializable {
+public class EmployeesEntity extends BaseEntity implements Serializable {
     @Id
     private Long empNo;
     private LocalDate birthDate;

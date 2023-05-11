@@ -33,15 +33,15 @@ public class LoggingAspect {
         return result;
     }
 
-    @AfterThrowing(pointcut = "controllerMethods()", throwing = "ex")
-    public void logControllerExceptions(JoinPoint joinPoint, Throwable ex) {
-        logger.error("Exception in method [{}]: {}", joinPoint.getSignature(), ex.getMessage());
-    }
-
-    @AfterThrowing(pointcut = "serviceMethods()", throwing = "ex")
-    public void logServiceExceptions(JoinPoint joinPoint, Throwable ex) {
-        logger.error("Exception in method [{}]: {}", joinPoint.getSignature(), ex.getMessage());
-    }
+//    @AfterThrowing(pointcut = "controllerMethods()", throwing = "ex")
+//    public void logControllerExceptions(JoinPoint joinPoint, Throwable ex) {
+//        logger.error("Exception in method [{}]: {}", joinPoint.getSignature(), ex.getMessage());
+//    }
+//
+//    @AfterThrowing(pointcut = "serviceMethods()", throwing = "ex")
+//    public void logServiceExceptions(JoinPoint joinPoint, Throwable ex) {
+//        logger.error("Exception in method [{}]: {}", joinPoint.getSignature(), ex.getMessage());
+//    }
 
     @AfterThrowing(pointcut = "daoMethods()", throwing = "ex")
     public void logDaoExceptions(JoinPoint joinPoint, Throwable ex) {

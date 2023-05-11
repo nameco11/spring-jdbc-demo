@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @NoArgsConstructor
-public class TripsEntity {
+public class TripsEntity extends BaseEntity {
     @Id
     private Long tripId;
     @Column(name = "pickup_datetime")

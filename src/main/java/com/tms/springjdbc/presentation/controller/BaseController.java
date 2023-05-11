@@ -3,15 +3,16 @@ package com.tms.springjdbc.presentation.controller;
 import com.tms.springjdbc.application.services.BaseService;
 import com.tms.springjdbc.infrastructure.search.Operation;
 import com.tms.springjdbc.presentation.web.dto.BaseResponse;
-import com.tms.springjdbc.presentation.web.dto.ErrorResponse;
 import com.tms.springjdbc.presentation.web.dto.SearchParam;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public abstract class BaseController<T, ID extends Serializable, S extends BaseService<T, ID>> {
 
@@ -81,48 +82,4 @@ public abstract class BaseController<T, ID extends Serializable, S extends BaseS
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<BaseResponse> handleException(Exception ex) {
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-        String message = ex.getMessage();
-        String errorCode = "ERR_UNKNOWN";
-        Object data = null;
-
-        if (ex instanceof IllegalArgumentException) {
-            status = HttpStatus.BAD_REQUEST;
-            errorCode = "ERR_BAD_REQUEST";
-        } else if (ex instanceof DataAccessException) {
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
-            errorCode = "ERR_DATA_ACCESS";
-        } else if (ex instanceof NoSuchElementException) {
-            status = HttpStatus.NOT_FOUND;
-            errorCode = "ERR_NOT_FOUND";
-        }
-
-        // ... other exceptions can be added here
-        ErrorResponse errorResponse = new ErrorResponse(status.toString(), message, errorCode, data);
-        return new ResponseEntity<>(errorResponse, status);
-    }
-
-//    @GetMapping("/search")
-//    public ResponseEntity<SearchResult<T>> search(@RequestParam(defaultValue = "0") int page,
-//                                                            @RequestParam(defaultValue = "10") int size,
-//                                                            @RequestParam(defaultValue = "id") String sort,
-//                                                            @RequestParam(defaultValue = "DESC") String direction
-//    ) {
-//        PageRequest pageRequest = new PageRequest(page, size, sort, direction);
-//        SearchResult<T> searchResult = service.search(new ArrayList<>(), new ArrayList<>(), pageRequest);
-//        return ResponseEntity.ok(searchResult);
-//    }
-//
-//    @GetMapping("/search-join")
-//    public ResponseEntity<SearchResult<T>> searchJoin(@RequestParam(defaultValue = "0") int page,
-//                                                                @RequestParam(defaultValue = "10") int size,
-//                                                                @RequestParam(defaultValue = "id") String sort,
-//                                                                @RequestParam(defaultValue = "DESC") String direction) {
-//        PageRequest pageRequest = new PageRequest(page, size, sort, direction);
-//        SearchResult<T> searchResult = service.searchJoin(new ArrayList<>(), new ArrayList<>(),new ArrayList<>(), pageRequest);
-//        return ResponseEntity.ok(searchResult);
-//    }
 }

@@ -1,9 +1,11 @@
 package com.tms.springjdbc.infrastructure.dao.port;
 
+import com.tms.springjdbc.domain.model.BaseEntity;
 import com.tms.springjdbc.domain.repository.BaseDao;
 import com.tms.springjdbc.infrastructure.annotation.Column;
 import com.tms.springjdbc.infrastructure.annotation.Id;
 import com.tms.springjdbc.infrastructure.annotation.Table;
+import com.tms.springjdbc.infrastructure.ext.CustomBeanPropertySqlParameterSource;
 import com.tms.springjdbc.infrastructure.search.SearchResult;
 import com.tms.springjdbc.infrastructure.search.SearchResultImpl;
 import com.tms.springjdbc.infrastructure.search.SearchUtil;
@@ -14,32 +16,31 @@ import com.tms.springjdbc.presentation.web.dto.SearchParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-public abstract class BaseDaoImpl<T,ID extends Serializable> implements BaseDao<T, ID> {
+public abstract class BaseDaoImpl<T extends BaseEntity, ID extends Serializable> implements BaseDao<T, ID> {
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final Class<T> entityClass;
 
     @SuppressWarnings("unchecked")
     public BaseDaoImpl(NamedParameterJdbcTemplate namedParameterJdbcTemplate, Class<T> entityClass) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
-        this.entityClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];;
+        this.entityClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        ;
+    }
+
+    protected NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
+        return namedParameterJdbcTemplate;
     }
 
     @SuppressWarnings("unchecked")
@@ -76,10 +77,22 @@ public abstract class BaseDaoImpl<T,ID extends Serializable> implements BaseDao<
 
     @Override
     public T save(T entity) {
-        String query = "INSERT INTO " + getTableName() + " (...) VALUES (...)";
+        StringBuilder columns = new StringBuilder();
+        StringBuilder values = new StringBuilder();
+        for (Field field : entity.getClass().getDeclaredFields()) {
+            String columnName = getColumnName(field);
+            columns.append(columnName).append(",");
+            values.append(":").append(columnName).append(",");
+        }
+        if (columns.length() > 0) {
+            columns.setLength(columns.length() - 1);
+            values.setLength(values.length() - 1);
+        }
+        String query = "INSERT INTO " + getTableName() + " (" + columns.toString() + ") VALUES (" + values.toString() + ")";
         namedParameterJdbcTemplate.update(query, getSqlParameterSource(entity));
         return entity;
     }
+
 
     @Override
     public void delete(T entity) {
@@ -96,14 +109,14 @@ public abstract class BaseDaoImpl<T,ID extends Serializable> implements BaseDao<
     @Override
     public Optional<T> findById(ID id) {
         String query = "SELECT * FROM " + getTableName() + " WHERE id = :id";
-        List<T> result = namedParameterJdbcTemplate.query(query, new MapSqlParameterSource("id", id), getRowMapper());
+        List<T> result = namedParameterJdbcTemplate.query(query, new MapSqlParameterSource("id", id), new BeanPropertyRowMapper<>(entityClass));
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
     @Override
     public List<T> findAll() {
         String query = "SELECT * FROM " + getTableName();
-        return namedParameterJdbcTemplate.query(query, getRowMapper());
+        return namedParameterJdbcTemplate.query(query, new BeanPropertyRowMapper<>(entityClass));
     }
 
     @Override
@@ -130,7 +143,6 @@ public abstract class BaseDaoImpl<T,ID extends Serializable> implements BaseDao<
         } catch (EmptyResultDataAccessException e) {
             content = new ArrayList<>();
         }
-
         long totalElements = countTotalElements(searchParams, joinParams, parameterSource);
         int totalPages = (int) Math.ceil((double) totalElements / pageRequest.getSize());
         return new SearchResultImpl<>(content, pageRequest.getPage(), pageRequest.getSize(), totalElements, totalPages);
@@ -141,35 +153,8 @@ public abstract class BaseDaoImpl<T,ID extends Serializable> implements BaseDao<
         return namedParameterJdbcTemplate.queryForObject(countQuery, parameterSource, Long.class);
     }
 
-
-    protected final RowMapper<T> getRowMapper() {
-        return new RowMapper<T>() {
-            @Override
-            public T mapRow(ResultSet rs, int rowNum) throws SQLException {
-                T entity = null;
-                try {
-                    entity = getEntityClass().getDeclaredConstructor().newInstance();
-                    for (Field field : entity.getClass().getDeclaredFields()) {
-                        field.setAccessible(true);
-                        String columnName = getColumnName(field);
-                        Object value = rs.getObject(columnName);
-                        field.set(entity, value);
-                    }
-                } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
-                         InvocationTargetException e) {
-                    log.error("Error creating new instance of entity", e);
-                }
-                return entity;
-            }
-        };
-    }
-    protected final SqlParameterSource getSqlParameterSource(T entity) {
-        BeanPropertySqlParameterSource parameterSource = new BeanPropertySqlParameterSource(entity);
-        for (Field field : entity.getClass().getDeclaredFields()) {
-            String columnName = getColumnName(field);
-            parameterSource.registerSqlType(columnName, Types.OTHER);
-        }
-        return parameterSource;
+    protected SqlParameterSource getSqlParameterSource(T entity) {
+        return new CustomBeanPropertySqlParameterSource(entity);
     }
 
     private String getColumnName(Field field) {
@@ -186,5 +171,6 @@ public abstract class BaseDaoImpl<T,ID extends Serializable> implements BaseDao<
         ParameterizedType parameterizedType = (ParameterizedType) getClass().getGenericSuperclass();
         return (Class<T>) parameterizedType.getActualTypeArguments()[0];
     }
+
 }
 

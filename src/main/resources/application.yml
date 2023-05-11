@@ -1,6 +1,5 @@
 
-
-baseUrl: /denormalizing
+baseUrl: /demo
 version: v1
 apiUrl: ${baseUrl}/${version}
 app:
@@ -26,6 +25,10 @@ app:
       username: floyd
       password: pink
 spring:
+  resources:
+    add-mappings: false
+  mvc:
+    throw-exception-if-no-handler-found: 'true'
   main:
     allow-bean-definition-overriding: 'true'
 jasypt:
@@ -40,6 +43,8 @@ info:
 management:
   server:
     port: 8080
+    error:
+      path: /error
   endpoint:
     health:
       show-details: always

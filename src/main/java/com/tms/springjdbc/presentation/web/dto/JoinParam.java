@@ -14,16 +14,14 @@ public class JoinParam {
     private String alias;
     private String column;
     private JoinType joinType;
-    private String onClause;
-
     public JoinParam(String table) {
         this.table = table;
     }
     public enum JoinType {
-        INNER_JOIN("INNER JOIN"),
-        LEFT_JOIN("LEFT JOIN"),
-        RIGHT_JOIN("RIGHT JOIN"),
-        FULL_OUTER_JOIN("FULL OUTER JOIN");
+        INNER_JOIN("INNER"),
+        LEFT_JOIN("LEFT"),
+        RIGHT_JOIN("RIGHT"),
+        FULL_OUTER_JOIN("FULL OUTER");
 
         private final String value;
 

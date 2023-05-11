@@ -1,5 +1,6 @@
 package com.tms.springjdbc.presentation.controller;
 
+import com.tms.springjdbc.application.dto.CustomDeptEmpResponse;
 import com.tms.springjdbc.application.services.DeptEmpService;
 import com.tms.springjdbc.domain.model.DeptEmpEntity;
 import com.tms.springjdbc.infrastructure.search.SearchResult;
@@ -26,6 +27,18 @@ public class DeptEmpController extends BaseController<DeptEmpEntity, Long, DeptE
     public ResponseEntity<BaseResponse<SearchResult<DeptEmpEntity>>> search(@RequestParam Map<String, String> allRequestParams, PageRequest pageRequest) {
         List<SearchParam> searchParams = convertRequestParamsToSearchParams(allRequestParams);
         SearchResult<DeptEmpEntity> searchResult = service.search(searchParams, pageRequest);
+        return success("Search completed successfully", searchResult);
+    }
+
+    @GetMapping("/select")
+    public ResponseEntity<BaseResponse<SearchResult<CustomDeptEmpResponse>>> findCustomDeptEmp(PageRequest pageRequest) {
+        SearchResult<CustomDeptEmpResponse> searchResult = service.findCustomDeptEmp(pageRequest);
+        return success("Search completed successfully", searchResult);
+    }
+
+    @GetMapping("/join")
+    public ResponseEntity<BaseResponse<SearchResult<CustomDeptEmpResponse>>> join2(PageRequest pageRequest) {
+        SearchResult<CustomDeptEmpResponse> searchResult = service.join2(pageRequest);
         return success("Search completed successfully", searchResult);
     }
 }
