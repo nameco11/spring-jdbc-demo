@@ -8,7 +8,8 @@ public enum Operation {
     GREATER_THAN_OR_EQUAL_TO(">="),
     LESS_THAN_OR_EQUAL_TO("<="),
     BETWEEN("BETWEEN"),
-    LIKE("LIKE");
+    LIKE("LIKE"),
+    OR("OR");
 
     private final String value;
 

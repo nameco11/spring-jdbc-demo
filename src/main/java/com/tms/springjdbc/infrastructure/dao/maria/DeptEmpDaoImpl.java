@@ -28,19 +28,21 @@ public class DeptEmpDaoImpl extends BaseDaoImpl<DeptEmpEntity, Long> implements 
     public SearchResult<CustomDeptEmpResponse> findCustomDeptEmp(PageRequest pageRequest) {
         List<SelectColumn> selectColumn = List.of(
                 new SelectColumn("dept_emp.emp_no", "empNo")
-//                new SelectColumn("employees.first_name", "firstName"),
-//                new SelectColumn("employees.last_name", "lastName"),
-//                new SelectColumn("dept_emp.dept_no", "deptNo"),
-//                new SelectColumn("departments.dept_name", "deptName"),
-//                new SelectColumn("dept_emp.from_date", "fromDate"),
-//                new SelectColumn("dept_emp.to_date", "toDate")
         );
-        return (SearchResult<CustomDeptEmpResponse>) this.search(selectColumn, Collections.EMPTY_LIST, pageRequest);
+        return this.search(selectColumn, Collections.EMPTY_LIST, pageRequest);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    public SearchResult<CustomDeptEmpResponse> findCustomDeptEmp(List<SearchParam> searchParams, PageRequest pageRequest) {
+        List<SelectColumn> selectColumn = List.of(
+                new SelectColumn("dept_emp.emp_no", "empNo")
+        );
+        return this.search(selectColumn, searchParams, pageRequest);
+    }
+
+    @Override
     public SearchResult<CustomDeptEmpResponse> join2(PageRequest pageRequest) {
+
         List<SelectColumn> selectColumn = List.of(
                 new SelectColumn("dept_emp.dept_no", "dept_no"),
                 new SelectColumn("dept_manager.emp_no", "empNo")
@@ -51,7 +53,6 @@ public class DeptEmpDaoImpl extends BaseDaoImpl<DeptEmpEntity, Long> implements 
         primaryJoinParam.setColumn("emp_no");
         primaryJoinParam.setJoinType(JoinParam.JoinType.INNER_JOIN);
         joinParams.add(primaryJoinParam);
-
         JoinParam joinParam1 = new JoinParam("dept_manager");
         joinParam1.setAlias("dept_manager");
         joinParam1.setColumn("emp_no");
@@ -64,7 +65,6 @@ public class DeptEmpDaoImpl extends BaseDaoImpl<DeptEmpEntity, Long> implements 
         searchParam1.setOperation(Operation.EQUAL);
         searchParam1.setValue("d002");
         searchParams.add(searchParam1);
-
-        return searchJoin(selectColumn, searchParams, joinParams, pageRequest);
+        return this.searchJoin(selectColumn, searchParams, joinParams, pageRequest, CustomDeptEmpResponse.class);
     }
 }

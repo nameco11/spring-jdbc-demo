@@ -2,6 +2,7 @@ package com.tms.springjdbc.domain.model;
 
 
 import com.tms.springjdbc.infrastructure.annotation.Id;
+import com.tms.springjdbc.infrastructure.annotation.JoinColumn;
 import com.tms.springjdbc.infrastructure.annotation.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class EmployeesEntity extends BaseEntity implements Serializable {
     @Id
+    @JoinColumn(name = "emp_no", referencedColumnName = "emp_no")
     private Long empNo;
     private LocalDate birthDate;
     private String firstName;

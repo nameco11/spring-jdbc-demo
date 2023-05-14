@@ -2,6 +2,7 @@ package com.tms.springjdbc.domain.model;
 
 import com.tms.springjdbc.infrastructure.annotation.Column;
 import com.tms.springjdbc.infrastructure.annotation.Id;
+import com.tms.springjdbc.infrastructure.annotation.JoinColumn;
 import com.tms.springjdbc.infrastructure.annotation.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,7 @@ import java.io.Serializable;
 public class DeptEmpEntity extends BaseEntity implements Serializable {
     @Id
     @Column(name = "emp_no")
+    @JoinColumn(name = "emp_no", referencedColumnName = "emp_no")
     private Long empNo;
     @Column(name = "dept_no")
     private String deptNo;

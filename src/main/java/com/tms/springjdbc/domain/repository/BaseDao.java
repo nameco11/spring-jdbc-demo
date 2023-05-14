@@ -22,7 +22,7 @@ public interface BaseDao<T extends BaseEntity, ID extends Serializable> {
 
     List<T> findAll();
 
-    SearchResult<T> search(List<SelectColumn> selectColumns, List<SearchParam> searchParams, PageRequest pageRequest);
+    public <E> SearchResult<E> search(List<SelectColumn> selectColumns, List<SearchParam> searchParams, PageRequest pageRequest);
 
-    SearchResult<T> searchJoin(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> join, PageRequest pageRequest);
+    public <E> SearchResult<E> searchJoin(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> join, PageRequest pageRequest, Class<E> responseType);
 }

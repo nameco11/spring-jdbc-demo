@@ -6,10 +6,7 @@ import com.tms.springjdbc.infrastructure.annotation.Column;
 import com.tms.springjdbc.infrastructure.annotation.Id;
 import com.tms.springjdbc.infrastructure.annotation.Table;
 import com.tms.springjdbc.infrastructure.ext.CustomBeanPropertySqlParameterSource;
-import com.tms.springjdbc.infrastructure.search.SearchResult;
-import com.tms.springjdbc.infrastructure.search.SearchResultImpl;
-import com.tms.springjdbc.infrastructure.search.SearchUtil;
-import com.tms.springjdbc.infrastructure.search.SelectColumn;
+import com.tms.springjdbc.infrastructure.search.*;
 import com.tms.springjdbc.presentation.web.dto.JoinParam;
 import com.tms.springjdbc.presentation.web.dto.PageRequest;
 import com.tms.springjdbc.presentation.web.dto.SearchParam;
@@ -68,7 +65,7 @@ public abstract class BaseDaoImpl<T extends BaseEntity, ID extends Serializable>
         }
     }
 
-    protected List<JoinParam> getJoinParam() {
+    protected List<JoinParam> getDefaultJoinParam() {
         List<JoinParam> joinParams = new ArrayList<>();
         joinParams.add(new JoinParam(getTableName()));
         return joinParams;
@@ -120,26 +117,35 @@ public abstract class BaseDaoImpl<T extends BaseEntity, ID extends Serializable>
     }
 
     @Override
-    public SearchResult<T> search(List<SelectColumn> selectColumns, List<SearchParam> searchParams, PageRequest pageRequest) {
-        String query = SearchUtil.generateSql(selectColumns, searchParams, getJoinParam());
-        return getSearchResult(searchParams, getJoinParam(), pageRequest, query);
+    @SuppressWarnings("unchecked")
+    public <E> SearchResult<E> search(List<SelectColumn> selectColumns, List<SearchParam> searchParams, PageRequest pageRequest) {
+        String query = SearchUtil.generateSql(selectColumns, searchParams, getDefaultJoinParam());
+        return getSearchResult(searchParams, getDefaultJoinParam(), pageRequest, query, (Class<E>) entityClass);
     }
 
     @Override
-    public SearchResult<T> searchJoin(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> joinParams, PageRequest pageRequest) {
+    public <E> SearchResult<E> searchJoin(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> joinParams, PageRequest pageRequest, Class<E> responseType) {
         String query = SearchUtil.generateSql(selectColumns, searchParams, joinParams);
-        return getSearchResult(searchParams, joinParams, pageRequest, query);
+        return getSearchResult(searchParams, joinParams, pageRequest, query, responseType);
     }
 
-    private SearchResult<T> getSearchResult(List<SearchParam> searchParams, List<JoinParam> joinParams, PageRequest pageRequest, String query) {
+    public <E> SearchResult<E> getSearchResult(List<SearchParam> searchParams, List<JoinParam> joinParams, PageRequest pageRequest, String query, Class<E> responseType) {
         MapSqlParameterSource parameterSource = new MapSqlParameterSource();
         query += " LIMIT :offset, :size";
         parameterSource.addValue("offset", pageRequest.getPage() * pageRequest.getSize());
         parameterSource.addValue("size", pageRequest.getSize());
-
-        List<T> content;
+        for (SearchParam searchParam : searchParams) {
+            if (searchParam.getOperation() == Operation.BETWEEN) {
+                List<?> rangeValues = (List<?>) searchParam.getValue();
+                parameterSource.addValue(SearchUtil.replaceDotWithUnderscore(searchParam.getName()) + "From", rangeValues.get(0));
+                parameterSource.addValue(SearchUtil.replaceDotWithUnderscore(searchParam.getName()) + "To", rangeValues.get(1));
+            } else {
+                parameterSource.addValue(SearchUtil.replaceDotWithUnderscore(searchParam.getName()), searchParam.getValue());
+            }
+        }
+        List<E> content;
         try {
-            content = namedParameterJdbcTemplate.query(query, parameterSource, new BeanPropertyRowMapper<>(entityClass));
+            content = namedParameterJdbcTemplate.query(query, parameterSource, new BeanPropertyRowMapper<>(responseType));
         } catch (EmptyResultDataAccessException e) {
             content = new ArrayList<>();
         }

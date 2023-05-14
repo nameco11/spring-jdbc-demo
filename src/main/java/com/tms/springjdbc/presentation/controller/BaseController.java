@@ -32,7 +32,6 @@ public abstract class BaseController<T, ID extends Serializable, S extends BaseS
 
     protected List<SearchParam> convertRequestParamsToSearchParams(Map<String, String> requestParams) {
         List<SearchParam> searchParams = new ArrayList<>();
-
         for (Map.Entry<String, String> entry : requestParams.entrySet()) {
             String paramName = entry.getKey();
             String paramValue = entry.getValue();

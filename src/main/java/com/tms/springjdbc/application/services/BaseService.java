@@ -12,13 +12,18 @@ import java.util.Optional;
 
 public interface BaseService<T, ID extends Serializable> {
     T save(T entity);
-    void delete(T entity);
-    void deleteById(ID id);
-    Optional<T> findById(ID id);
-    List<T> findAll();
-    SearchResult<T> search(List<SelectColumn> selectColumns ,List<SearchParam> searchParams, PageRequest pageRequest);
-    SearchResult<T> search(List<SearchParam> searchParams, PageRequest pageRequest);
 
-    SearchResult<T> searchJoin(List<SelectColumn> selectColumns ,List<SearchParam> searchParams, List<JoinParam> join, PageRequest pageRequest);
-    SearchResult<T> searchJoin(List<SearchParam> searchParams, List<JoinParam> join, PageRequest pageRequest);
+    void delete(T entity);
+
+    void deleteById(ID id);
+
+    Optional<T> findById(ID id);
+
+    List<T> findAll();
+
+    <E> SearchResult<E> search(List<SearchParam> searchParams, PageRequest pageRequest);
+
+    <E> SearchResult<E> search(List<SelectColumn> selectColumns, List<SearchParam> searchParams, PageRequest pageRequest);
+
+    <E> SearchResult<E> searchJoin(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> joinParams, PageRequest pageRequest, Class<E> responseType);
 }

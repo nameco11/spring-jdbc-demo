@@ -31,8 +31,9 @@ public class DeptEmpController extends BaseController<DeptEmpEntity, Long, DeptE
     }
 
     @GetMapping("/select")
-    public ResponseEntity<BaseResponse<SearchResult<CustomDeptEmpResponse>>> findCustomDeptEmp(PageRequest pageRequest) {
-        SearchResult<CustomDeptEmpResponse> searchResult = service.findCustomDeptEmp(pageRequest);
+    public ResponseEntity<BaseResponse<SearchResult<CustomDeptEmpResponse>>> findCustomDeptEmp(@RequestParam Map<String, String> allRequestParams, PageRequest pageRequest) {
+        List<SearchParam> searchParams = convertRequestParamsToSearchParams(allRequestParams);
+        SearchResult<CustomDeptEmpResponse> searchResult = service.findCustomDeptEmp(searchParams, pageRequest);
         return success("Search completed successfully", searchResult);
     }
 

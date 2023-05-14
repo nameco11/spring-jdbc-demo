@@ -5,6 +5,7 @@ import com.tms.springjdbc.presentation.web.dto.SearchParam;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -14,22 +15,28 @@ public class SearchUtil {
         // do not call
     }
     public static String generateSql(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> joinParams) {
+        Objects.requireNonNull(joinParams, "joinParams must not be null");
         StringBuilder queryBuilder = new StringBuilder();
         appendSelectClause(queryBuilder, selectColumns);
-        appendFromClause(queryBuilder, joinParams);
+        appendFromClause(queryBuilder, joinParams.get(0).getTable());
+        if (joinParams.size() > 1) {
+            appendJoinClauses(queryBuilder, joinParams.subList(1, joinParams.size()));
+        }
         appendWhereClause(queryBuilder, searchParams);
-        appendJoinClauses(queryBuilder, joinParams);
-        log.info("Generated SQL: {}", queryBuilder.toString());
+        log.debug("Generated SQL: {}", queryBuilder.toString());
         return queryBuilder.toString();
     }
+
 
     public static String generateCountSql(List<SearchParam> searchParams, List<JoinParam> joinParams) {
         StringBuilder queryBuilder = new StringBuilder();
         appendCountClause(queryBuilder);
-        appendFromClause(queryBuilder, joinParams);
+        appendFromClause(queryBuilder, joinParams.get(0).getTable());
+        if (joinParams.size() > 1) {
+            appendJoinClauses(queryBuilder, joinParams.subList(1, joinParams.size()));
+        }
         appendWhereClause(queryBuilder, searchParams);
-        appendJoinClauses(queryBuilder, joinParams);
-        log.info("Generated COUNT SQL: {}", queryBuilder.toString());
+        log.debug("Generated COUNT SQL: {}", queryBuilder.toString());
         return queryBuilder.toString();
     }
 
@@ -48,71 +55,82 @@ public class SearchUtil {
         }
     }
 
-    private static void appendFromClause(StringBuilder queryBuilder, List<JoinParam> joinParams) {
-        queryBuilder.append("FROM ").append(joinParams.get(0).getTable()).append(" ");
+    private static void appendFromClause(StringBuilder queryBuilder, String mainTable) {
+        queryBuilder.append("FROM ").append(mainTable).append(" ");
     }
 
     private static void appendWhereClause(StringBuilder queryBuilder, List<SearchParam> searchParams) {
         if (!searchParams.isEmpty()) {
             queryBuilder.append("WHERE ");
-            searchParams.forEach(param -> {
+            for (int i = 0; i < searchParams.size(); i++) {
+                SearchParam param = searchParams.get(i);
                 queryBuilder.append(generateCondition(param)).append(" ");
-                queryBuilder.append("AND ");
-            });
-            queryBuilder.delete(queryBuilder.length() - 5, queryBuilder.length()); // Remove the trailing "AND"
+                if (i < searchParams.size() - 1) {
+                    queryBuilder.append("AND ");
+                }
+            }
         }
     }
 
     private static void appendJoinClauses(StringBuilder queryBuilder, List<JoinParam> joinParams) {
-        joinParams.stream().skip(1).forEach(joinParam -> {
+        joinParams.forEach(joinParam -> {
             String joinType = joinParam.getJoinType().getValue();
             String joinTable = joinParam.getTable();
             String alias = joinParam.getAlias();
             String column = joinParam.getColumn();
-
             queryBuilder.append(joinType).append(" JOIN ").append(joinTable).append(" AS ").append(alias)
                     .append(" ON ").append(alias).append(".").append(column).append(" = ").append(joinParams.get(0).getAlias()).append(".").append(column).append(" ");
         });
     }
 
+    public static String replaceDotWithUnderscore(String name) {
+        return name.replace('.', '_');
+    }
 
+
+    /**
+     * Generates a SQL condition for a given SearchParam.
+     *
+     * @param param The SearchParam for which to generate a condition.
+     * @return The generated SQL condition.
+     */
     public static String generateCondition(SearchParam param) {
-        String name = param.getName();
+        String name = replaceDotWithUnderscore(param.getName());
         Operation operation = param.getOperation();
         Object value = param.getValue();
 
         StringBuilder conditionBuilder = new StringBuilder();
-        conditionBuilder.append(name);
-
+        conditionBuilder.append(param.getName());
         switch (operation) {
             case EQUAL:
-                conditionBuilder.append(" = :").append(value);
-                break;
             case NOT_EQUAL:
-                conditionBuilder.append(" != :").append(value);
-                break;
             case GREATER_THAN:
-                conditionBuilder.append(" > :").append(value);
-                break;
             case LESS_THAN:
-                conditionBuilder.append(" < :").append(value);
-                break;
             case GREATER_THAN_OR_EQUAL_TO:
-                conditionBuilder.append(" >= :").append(value);
-                break;
             case LESS_THAN_OR_EQUAL_TO:
-                conditionBuilder.append(" <= :").append(value);
+            case LIKE:
+                conditionBuilder.append(operationToSql(operation)).append(" :").append(name);
                 break;
             case BETWEEN:
                 if (value instanceof List && ((List<?>) value).size() == 2) {
-                    List<?> rangeValues = (List<?>) value;
-                    conditionBuilder.append(" BETWEEN :").append(rangeValues.get(0)).append("1 AND :").append(rangeValues.get(1)).append("2");
+                    conditionBuilder.append(" BETWEEN :").append(name).append("From AND :").append(name).append("To");
                 } else {
                     throw new IllegalArgumentException("Invalid value for BETWEEN operation: " + value);
                 }
                 break;
-            case LIKE:
-                conditionBuilder.append(" LIKE :").append(value);
+            case OR:
+                if (value instanceof List) {
+                    conditionBuilder.append(" (");
+                    for (int i = 0; i < ((List<?>) value).size(); i++) {
+                        conditionBuilder.append(operationToSql(operation)).append(" :").append(name).append(i);
+                        if (i < ((List<?>) value).size() - 1) {
+                            conditionBuilder.append(" OR ");
+                        }
+                    }
+                    conditionBuilder.append(")");
+                } else {
+                    throw new IllegalArgumentException("Invalid value for OR operation: " + value);
+                }
                 break;
             default:
                 throw new IllegalArgumentException("Invalid operation: " + operation);
@@ -121,135 +139,25 @@ public class SearchUtil {
         return conditionBuilder.toString();
     }
 
-//    public static String buildSearchQuery(String baseQuery, List<SearchParam> searchParams, String sort, String order) {
-//        StringBuilder queryBuilder = new StringBuilder(baseQuery);
-//
-//        for (SearchParam param : searchParams) {
-//            queryBuilder.append(" AND ").append(param.getName()).append(" ").append(param.getOperation().getValue());
-//
-//            if (param.getOperation() == Operation.BETWEEN) {
-//                queryBuilder.append(" :").append(param.getName()).append("1 AND :").append(param.getName()).append("2");
-//            } else {
-//                queryBuilder.append(" :").append(param.getName());
-//            }
-//        }
-//
-//        if (sort != null && !sort.isEmpty()) {
-//            queryBuilder.append(" ORDER BY ").append(sort);
-//            if (order != null && !order.isEmpty()) {
-//                queryBuilder.append(" ").append(order);
-//            }
-//        }
-//
-//        return queryBuilder.toString();
-//    }
-//
-//    public static String generateSql(List<SearchParam> searchParams, List<JoinParam> joinParams) {
-//        StringBuilder sqlBuilder = new StringBuilder();
-//        sqlBuilder.append("SELECT * FROM your_table");
-//
-//        if (!joinParams.isEmpty()) {
-//            for (JoinParam joinParam : joinParams) {
-//                String joinClause = generateJoinClause(joinParam);
-//                sqlBuilder.append(" ").append(joinClause);
-//            }
-//        }
-//
-//        if (!searchParams.isEmpty()) {
-//            StringBuilder conditionBuilder = new StringBuilder();
-//            conditionBuilder.append(" WHERE ");
-//
-//            for (int i = 0; i < searchParams.size(); i++) {
-//                SearchParam param = searchParams.get(i);
-//                String condition = generateCondition(param);
-//                if (i > 0) {
-//                    conditionBuilder.append(" AND ");
-//                }
-//                conditionBuilder.append(condition);
-//            }
-//
-//            sqlBuilder.append(conditionBuilder);
-//        }
-//
-//        return sqlBuilder.toString();
-//    }
-//
-//    private static String generateJoinClause(JoinParam joinParam) {
-//        String joinType = joinParam.getJoinType().name();
-//        String table = joinParam.getTable();
-//        String alias = joinParam.getAlias();
-//        String onClause = joinParam.getOnClause();
-//
-//        return String.format("%s %s AS %s ON %s", joinType, table, alias, onClause);
-//    }
-//
-//    private static String generateCondition(SearchParam param) {
-//        String name = param.getName();
-//        Operation operation = param.getOperation();
-//        Object value = param.getValue();
-//
-//        StringBuilder conditionBuilder = new StringBuilder();
-//        conditionBuilder.append(name);
-//
-//        switch (operation) {
-//            case EQUAL:
-//                conditionBuilder.append(" = ").append(value);
-//                break;
-//            case NOT_EQUAL:
-//                conditionBuilder.append(" != ").append(value);
-//                break;
-//            case GREATER_THAN:
-//                conditionBuilder.append(" > ").append(value);
-//                break;
-//            case LESS_THAN:
-//                conditionBuilder.append(" < ").append(value);
-//                break;
-//            case GREATER_THAN_OR_EQUAL_TO:
-//                conditionBuilder.append(" >= ").append(value);
-//                break;
-//            case LESS_THAN_OR_EQUAL_TO:
-//                conditionBuilder.append(" <= ").append(value);
-//                break;
-//            case BETWEEN:
-//                if (value instanceof List && ((List<?>) value).size() == 2) {
-//                    List<?> rangeValues = (List<?>) value;
-//                    Object minValue = rangeValues.get(0);
-//                    Object maxValue = rangeValues.get(1);
-//                    conditionBuilder.append(" BETWEEN ").append(minValue).append(" AND ").append(maxValue);
-//                } else {
-//                    throw new IllegalArgumentException("Invalid value for BETWEEN operation: " + value);
-//                }
-//                break;
-//            case LIKE:
-//                conditionBuilder.append(" LIKE '%").append(value).append("%'");
-//                break;
-//            default:
-//                throw new IllegalArgumentException("Invalid operation: " + operation);
-//        }
-//
-//        return conditionBuilder.toString();
-//    }
-//        public static String buildSqlQuery(List<SearchParam> searchParams, String tableName) {
-//            String selectClause = "SELECT * FROM " + tableName + " ";
-//            String whereClause = buildWhereClause(searchParams);
-//
-//            return selectClause + whereClause;
-//        }
-//
-//        private static String buildWhereClause(List<SearchParam> searchParams) {
-//            if (searchParams == null || searchParams.isEmpty()) {
-//                return "";
-//            }
-//
-//            StringJoiner joiner = new StringJoiner(" AND ");
-//            for (SearchParam param : searchParams) {
-//                String column = param.getName();
-//                String value = param.getValue();
-//                String operator = param.getOperation().getSqlOperator();
-//
-//                joiner.add(column + " " + operator + " " + value);
-//            }
-//
-//            return "WHERE " + joiner.toString();
-//        }
+    private static String operationToSql(Operation operation) {
+        switch (operation) {
+            case EQUAL:
+                return " = ";
+            case NOT_EQUAL:
+                return " != ";
+            case GREATER_THAN:
+                return " > ";
+            case LESS_THAN:
+                return " < ";
+            case GREATER_THAN_OR_EQUAL_TO:
+                return " >= ";
+            case LESS_THAN_OR_EQUAL_TO:
+                return " <= ";
+            case LIKE:
+                return " LIKE ";
+            default:
+                return "";
+        }
+    }
+
 }

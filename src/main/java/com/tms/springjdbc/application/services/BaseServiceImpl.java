@@ -34,6 +34,7 @@ public class BaseServiceImpl<T extends BaseEntity, ID extends Serializable, D ex
     public void deleteById(ID id) {
         baseDao.deleteById(id);
     }
+
     @Override
     public Optional<T> findById(ID id) {
         return baseDao.findById(id);
@@ -45,22 +46,19 @@ public class BaseServiceImpl<T extends BaseEntity, ID extends Serializable, D ex
     }
 
     @Override
-    public SearchResult<T> search(List<SelectColumn> selectColumns ,List<SearchParam> searchParams, PageRequest pageRequest) {
-        return baseDao.search(selectColumns, searchParams, pageRequest);
+    public <E> SearchResult<E> search(List<SearchParam> searchParams, PageRequest pageRequest) {
+        return this.baseDao.search(new ArrayList<>(), searchParams, pageRequest);
     }
 
     @Override
-    public SearchResult<T> search(List<SearchParam> searchParams, PageRequest pageRequest) {
-        return baseDao.search(new ArrayList<>(), searchParams, pageRequest);
+    public <E> SearchResult<E> search(List<SelectColumn> selectColumns, List<SearchParam> searchParams, PageRequest pageRequest) {
+        return this.baseDao.search(selectColumns, searchParams, pageRequest);
     }
 
     @Override
-    public SearchResult<T> searchJoin(List<SelectColumn> selectColumns ,List<SearchParam> searchParams, List<JoinParam> join, PageRequest pageRequest) {
-        return baseDao.searchJoin(selectColumns, searchParams, join, pageRequest);
+    public <E> SearchResult<E> searchJoin(List<SelectColumn> selectColumns, List<SearchParam> searchParams, List<JoinParam> joinParams, PageRequest pageRequest, Class<E> responseType) {
+        return this.baseDao.searchJoin(selectColumns, searchParams, joinParams, pageRequest, responseType);
     }
 
-    @Override
-    public SearchResult<T> searchJoin(List<SearchParam> searchParams, List<JoinParam> join, PageRequest pageRequest) {
-        return baseDao.searchJoin(new ArrayList<>(), searchParams, join, pageRequest);
-    }
+
 }
